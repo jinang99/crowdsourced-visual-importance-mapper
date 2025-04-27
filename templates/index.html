@@ -1,48 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Animal Image</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        /* Additional custom styles */
-        #random-image {
-            max-width: 100%;
-            max-height: 400px;
-            margin: 20px;
-        }
-        .full-height {
-            height: 100vh;
-        }
-        .button-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: flex-end;
-            height: 100%;
-            padding: 20px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Guessing Game</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    #game-image {
+      width: 100%;
+      max-width: 600px;
+      height: auto;
+      margin: 20px 0;
+      transition: all 0.5s ease;
+    }
+    .full-height {
+      height: 100vh;
+    }
+    .center-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+  </style>
 </head>
 <body>
 
 <div class="container-fluid">
-    <div class="row full-height">
-        <!-- Left Column (70%) -->
-        <div class="col-md-8 d-flex flex-column align-items-start">
-            <h3 id="image-name" class="mt-4 ml-4"></h3>
-            <img id="random-image" class="img-fluid" src="" alt="">
-        </div>
-
-        <!-- Right Column (30%) -->
-        <div class="col-md-4">
-            <div class="button-container">
-                <button class="btn btn-primary" onclick="getRandomImage()">Get Random Image</button>
-            </div>
-        </div>
+  <div class="row full-height">
+    <!-- Left Column for Image -->
+    <div class="col-md-8 d-flex flex-column align-items-start justify-content-start p-4">
+      <h3 id="image-name" class="mb-3"></h3>
+      <img id="game-image" src="" alt="Random Image">
     </div>
+
+    <!-- Right Column for Game Controls -->
+    <div class="col-md-4">
+      <div class="center-content p-4">
+        <h2 class="mb-4">Your Guess</h2>
+        <input type="text" id="guess-input" class="form-control mb-3" placeholder="Type your guess here">
+        <button class="btn btn-success mb-3" onclick="submitGuess()">Submit</button>
+        <h4 id="score-text" class="mt-4">Score: 0</h4>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Bootstrap JS and jQuery -->
@@ -51,15 +54,65 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>
-    function getRandomImage() {
-        fetch('http://127.0.0.1:5000/random_image')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('image-name').innerText = "Image: " + data.image_name;
-                document.getElementById('random-image').src = "http://127.0.0.1:5000/data/" + data.image_actual_answer + "/" + data.image_name;
-            })
-            .catch(error => console.error('Error fetching image:', error));
+  let score = 0;
+  let currentImage = null;
+  let guessAttempts = 0; // How many guesses made for current image
+
+  // Load the first image on page load
+  window.onload = getRandomImage;
+
+  function getRandomImage() {
+    fetch('http://127.0.0.1:5000/random_image')
+      .then(response => response.json())
+      .then(data => {
+        currentImage = data;
+        document.getElementById('image-name').innerText = "Image ID: " + data.image_name;
+        document.getElementById('game-image').src = data.image_url; // backend gives the proper blurred URL
+        document.getElementById('guess-input').value = '';
+        guessAttempts = 0;
+      })
+      .catch(error => console.error('Error fetching image:', error));
+  }
+
+  function submitGuess() {
+    const userGuess = document.getElementById('guess-input').value.trim().toLowerCase();
+    if (!userGuess) {
+      alert("Please enter a guess!");
+      return;
     }
+
+    fetch('http://127.0.0.1:5000/check_answer', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        image_name: currentImage.image_name, 
+        guess: userGuess 
+      }),
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.correct) {
+        // Correct guess!
+        const points = Math.max(100 - guessAttempts * 20, 20); // Decrease points per wrong attempt
+        score += points;
+        document.getElementById('score-text').innerText = `Score: ${score}`;
+        alert(`Correct! You earned ${points} points!`);
+        getRandomImage(); // Load next random blurred image
+      } else {
+        // Wrong guess -> get less blurred version
+        guessAttempts += 1;
+        if (data.new_blurred_image_url) {
+          document.getElementById('game-image').src = data.new_blurred_image_url; // update to less blurred image
+        } else {
+          alert("No more less-blurred images available! Moving to next one.");
+          getRandomImage();
+        }
+      }
+    })
+    .catch(error => console.error('Error checking guess:', error));
+  }
 </script>
 
 </body>
