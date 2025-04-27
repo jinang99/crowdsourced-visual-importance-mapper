@@ -2,6 +2,8 @@ import random
 from pathlib import Path
 from flask import Flask, jsonify, send_from_directory, render_template
 from flask_cors import CORS
+from flask import request
+
 
 app = Flask(__name__)
 
@@ -10,6 +12,56 @@ CORS(app)
 
 # Set your base folder path
 data_dir = Path('data')
+
+def similarity_score(user_guess, actual_answer):
+    # TODO module3
+    return random.uniform(0.5, 1)
+
+@app.route('/check_answer', methods=['POST'])
+def check_answer():
+    data = request.get_json()
+    image_name = data.get('image_name')
+    user_guess = data.get('guess', '').lower()
+
+    # Extract the actual answer from image_name
+    actual_answer = image_name.split('-')[0].lower()
+
+    if similarity_score(user_guess, actual_answer) >= 0.75:
+        return jsonify({'correct': True})
+    else:
+        # If incorrect guess, you could return a slightly less blurred version
+        # For now, just returning the same image (you can improve later)
+
+        # Assuming you have multiple blurred versions like abc_blur1.jpg, abc_blur2.jpg etc
+        base_name = image_name.rsplit('.', 1)[0]  # remove .jpg
+        extension = image_name.rsplit('.', 1)[1]
+
+        # Check if image already has a blur level, like '-blur1'
+        if 'blur' in base_name:
+            name_parts = base_name.split('blur')
+            blur_level = int(name_parts[1])
+            next_blur_level = max(blur_level - 1, 0)  # decrease blur
+            next_image_name = f"{name_parts[0]}blur{next_blur_level}.{extension}"
+        else:
+            # First wrong attempt, try less blur
+            next_image_name = base_name + "blur0." + extension  # maybe no blur image
+        
+        # You can also check if the file exists before sending it, to avoid 404
+        folder_path = data_dir / actual_answer
+        next_image_path = folder_path / next_image_name
+
+        if next_image_path.exists():
+            return jsonify({
+                'correct': False,
+                'new_blurred_image_url': f"/data/{actual_answer}/{next_image_name}"
+            })
+        else:
+            # If no better image exists, tell frontend to move to next
+            return jsonify({
+                'correct': False,
+                'new_blurred_image_url': None
+            })
+
 
 @app.route('/random_image', methods=['GET'])
 def random_image():
