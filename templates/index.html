@@ -31,6 +31,10 @@
 <div class="container-fluid">
   <div class="row full-height">
     <!-- Left Column for Image -->
+    <select id="mode-toggle" class="form-control mb-3" onchange="getRandomImage()">
+      <option value="blurred">Blurred Mode</option>
+      <option value="pixelated">Pixelated Mode</option>
+    </select>
     <div class="col-md-8 d-flex flex-column align-items-start justify-content-start p-4">
       <h3 id="image-name" class="mb-3"></h3>
       <img id="game-image" src="" alt="Random Image">
@@ -62,7 +66,8 @@
   window.onload = getRandomImage;
 
   function getRandomImage() {
-    fetch('http://127.0.0.1:5000/random_image')
+    const mode = document.getElementById('mode-toggle').value;
+    fetch(`http://127.0.0.1:5000/random_image?mode=${mode}`)
       .then(response => response.json())
       .then(data => {
         currentImage = data;
@@ -88,7 +93,10 @@
       },
       body: JSON.stringify({ 
         image_name: currentImage.image_name, 
-        guess: userGuess 
+        guess: userGuess,
+        mode: currentImage.mode,
+        blur_level: currentImage.blur_level,
+        pixel_ratio: currentImage.pixel_ratio
       }),
     })
     .then(response => response.json())
@@ -103,12 +111,23 @@
       } else {
         // Wrong guess -> get less blurred version
         guessAttempts += 1;
-        if (data.new_blurred_image_url) {
-          document.getElementById('game-image').src = data.new_blurred_image_url; // update to less blurred image
+        if (currentImage.mode === 'blurred' && data.new_blurred_image_url) {
+          document.getElementById('game-image').src = data.new_blurred_image_url;
+          currentImage.blur_level = data.blur_level;
+        } else if (currentImage.mode === 'pixelated' && data.new_pixelated_image_url) {
+          document.getElementById('game-image').src = data.new_pixelated_image_url;
+          currentImage.pixel_ratio = data.pixel_ratio;
         } else {
-          alert("No more less-blurred images available! Moving to next one.");
+          alert("No more image resolution available. Moving on.");
           getRandomImage();
         }
+        // guessAttempts += 1;
+        // if (data.new_blurred_image_url) {
+        //   document.getElementById('game-image').src = data.new_blurred_image_url; // update to less blurred image
+        // } else {
+        //   alert("No more less-blurred images available! Moving to next one.");
+        //   getRandomImage();
+        // }
       }
     })
     .catch(error => console.error('Error checking guess:', error));
