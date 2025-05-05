@@ -19,6 +19,7 @@ CORS(app)
 
 # Set your base folder path
 data_dir = Path("data")
+city_data_dir = Path("city_data")
 
 # Image cache folder
 blurred_cache_dir = Path("blurred_cache")
@@ -170,6 +171,8 @@ def similarity_score(user_guess, actual_answer):
 @app.route("/check_answer", methods=["POST"])
 def check_answer():
     data = request.get_json()
+    domain = data.get("domain", "animals")
+    base_dir = data_dir if domain == "animals" else city_data_dir
     image_name = data.get("image_name")
     user_guess = data.get("guess", "").lower()
     mode = data.get("mode", "blurred")
@@ -189,7 +192,7 @@ def check_answer():
         blur_level = data.get("blur_level", 8)
         next_blur_level = max(blur_level - 1, 0)
         blurred_image_name = f"{image_name}_blur{next_blur_level}.jpg"
-        orig_path = data_dir / actual_answer / image_name
+        orig_path = base_dir / actual_answer / image_name
         cache_path = blurred_cache_dir / actual_answer
         final_path = cache_path / blurred_image_name
         blur_image(orig_path, next_blur_level, final_path)
@@ -208,7 +211,7 @@ def check_answer():
         new_pixel_ratio = min(pixel_ratio + 0.05, 1.0)
 
         pixelated_image_name = f"{image_name}_pix{int(new_pixel_ratio*100)}.jpg"
-        orig_path = data_dir / actual_answer / image_name
+        orig_path = base_dir / actual_answer / image_name
         cache_path = pixelated_cache_dir / actual_answer
         final_path = cache_path / pixelated_image_name
         pixel_map_path = cache_path / (pixelated_image_name + ".json")
@@ -277,10 +280,12 @@ def random_image():
 
     mode = request.args.get("mode", "blurred")
 
-    animal_folders = [f for f in data_dir.iterdir() if f.is_dir()]
+    domain = request.args.get("domain", "animals")
+    base_dir = data_dir if domain == "animals" else city_data_dir
+    folders = [f for f in base_dir.iterdir() if f.is_dir()]
 
     # Pick a random folder
-    random_folder = random.choice(animal_folders)
+    random_folder = random.choice(folders)
 
     # Get all image files in that folder
     image_files = [f for f in random_folder.iterdir() if f.is_file()]
