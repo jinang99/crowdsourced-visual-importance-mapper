@@ -6,33 +6,190 @@
   <title>Image Guessing Game</title>
   <!-- Bootstrap CSS -->
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <style>
+    :root {
+      --primary-color: #4361ee;
+      --secondary-color: #3f37c9;
+      --accent-color: #4cc9f0;
+      --light-color: #f8f9fa;
+      --dark-color: #212529;
+      --success-color: #4bb543;
+      --warning-color: #f8961e;
+      --danger-color: #f94144;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
     #game-image {
       width: 100%;
       max-width: 600px;
       height: auto;
       margin-bottom: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      transition: all 0.5s ease;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      transform: scale(0.98);
     }
+    
+    #game-image:hover {
+      transform: scale(1);
+      box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+    }
+    
     .full-height {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 20px;
     }
+    
     .game-card {
       width: 100%;
       max-width: 1000px;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
-      background-color: #f8f9fa;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      background-color: white;
+      border: none;
+      transition: all 0.3s ease;
     }
+    
+    .game-card:hover {
+      box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      background-color: var(--secondary-color);
+      border-color: var(--secondary-color);
+      transform: translateY(-2px);
+    }
+    
+    .btn-success {
+      background-color: var(--success-color);
+      border-color: var(--success-color);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(75, 181, 67, 0.3);
+    }
+    
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(75, 181, 67, 0.4);
+    }
+    
+    .form-control {
+      border-radius: 8px;
+      padding: 12px 15px;
+      border: 2px solid #e9ecef;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 0.2rem rgba(76, 201, 240, 0.25);
+    }
+    
+    .score-display {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+      margin-top: 20px;
+    }
+    
+    .score-display h5 {
+      margin-bottom: 0;
+      font-weight: 700;
+      font-size: 1.5rem;
+    }
+    
+    .alert {
+      border-radius: 8px;
+      padding: 12px 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      animation: slideIn 0.5s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from { top: -100px; opacity: 0; }
+      to { top: 20px; opacity: 1; }
+    }
+    
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    
+    .fade-out {
+      animation: fadeOut 0.5s ease-out forwards;
+    }
+    
+    .image-id {
+      background-color: var(--light-color);
+      padding: 8px 15px;
+      border-radius: 20px;
+      display: inline-block;
+      font-size: 0.9rem;
+      color: var(--dark-color);
+      margin-bottom: 15px;
+    }
+    
+    .game-title {
+      color: var(--primary-color);
+      font-weight: 700;
+      margin-bottom: 25px;
+      position: relative;
+      display: inline-block;
+    }
+    
+    .game-title::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 50%;
+      height: 4px;
+      background: var(--accent-color);
+      border-radius: 2px;
+    }
+    
     @media (max-width: 768px) {
+      .game-card {
+        padding: 25px;
+      }
+      
       .row {
         flex-direction: column-reverse;
+      }
+      
+      .score-display {
+        margin-top: 15px;
       }
     }
   </style>
@@ -44,20 +201,35 @@
     <div class="row">
       <!-- Left Column for Image -->
       <div class="col-md-8 mb-4 mb-md-0 text-center">
-        <h5 id="image-name" class="mb-3"></h5>
-        <img id="game-image" src="" alt="Random Image">
+        <div class="image-id" id="image-name"></div>
+        <img id="game-image" src="" alt="Random Image" class="img-fluid">
       </div>
 
       <!-- Right Column for Game Controls -->
-      <div class="col-md-4 d-flex flex-column">
-        <h4 class="mb-3 text-center">Your Guess</h4>
-        <input type="text" id="guess-input" class="form-control mb-2" placeholder="Type your guess here">
-        <button class="btn btn-success mb-3" id="submit-btn" onclick="submitGuess()">Submit</button>
-        <select id="mode-toggle" class="form-control mb-3" onchange="getRandomImage()">
-          <option value="blurred">Blurred Mode</option>
-          <option value="pixelated">Pixelated Mode</option>
-        </select>
-        <h5 id="score-text" class="text-center mt-auto">Score: 0</h5>
+      <div class="col-md-4" style="position: relative; z-index: 1;">
+        <!-- Remove d-flex flex-column from parent -->
+        <h4 class="game-title text-center">Image Guessing Game</h4>
+        
+        <div class="form-group">
+          <label for="guess-input" class="font-weight-bold">Your Guess</label>
+          <input type="text" id="guess-input" class="form-control mb-3" placeholder="What do you see?">
+        </div>
+        
+        <button class="btn btn-success mb-4" id="submit-btn" onclick="submitGuess()">
+          <i class="fas fa-paper-plane mr-2"></i> Submit
+        </button>
+        
+        <div class="form-group" style="position: relative; z-index: 1000;">
+          <label for="mode-toggle" class="font-weight-bold">Game Mode</label>
+          <select id="mode-toggle" class="form-control mb-4" onchange="getRandomImage()">
+            <option value="blurred">Blurred Mode</option>
+            <option value="pixelated">Pixelated Mode</option>
+          </select>
+        </div>
+        
+        <div class="score-display">
+          <h5 id="score-text">Score: 0</h5>
+        </div>
       </div>
     </div>
   </div>
@@ -77,6 +249,9 @@
     getRandomImage();
     document.getElementById('guess-input').addEventListener('input', toggleSubmitButton);
     toggleSubmitButton();
+    
+    // Focus on input field when page loads
+    document.getElementById('guess-input').focus();
   };
 
   function toggleSubmitButton() {
@@ -90,17 +265,31 @@
       .then(response => response.json())
       .then(data => {
         currentImage = data;
-        document.getElementById('image-name').innerText = "Image ID: " + data.image_name;
+        document.getElementById('image-name').innerText = "ID: " + data.image_name;
         document.getElementById('game-image').src = data.image_url;
         document.getElementById('guess-input').value = '';
         guessAttempts = 0;
         toggleSubmitButton();
+        
+        // Add loading animation
+        const img = document.getElementById('game-image');
+        img.style.opacity = '0';
+        setTimeout(() => {
+          img.style.opacity = '1';
+        }, 300);
       })
-      .catch(error => showAlert('Error fetching image.'));
+      .catch(error => showAlert('Error fetching image. Please try again.'));
   }
 
   function submitGuess() {
     const userGuess = document.getElementById('guess-input').value.trim().toLowerCase();
+    if (!userGuess) return;
+    
+    // Add button click effect
+    const btn = document.getElementById('submit-btn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Checking...';
+    btn.disabled = true;
+    
     fetch('http://127.0.0.1:5000/check_answer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -114,36 +303,71 @@
     })
     .then(response => response.json())
     .then(data => {
+      btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Submit';
+      btn.disabled = false;
+      
       if (data.correct) {
         const points = Math.max(100 - guessAttempts * 20, 20);
         score += points;
         document.getElementById('score-text').innerText = `Score: ${score}`;
         showAlert(`✅ Correct! You earned ${points} points.`, 'success');
+        
+        // Add score animation
+        const scoreElement = document.getElementById('score-text');
+        scoreElement.style.transform = 'scale(1.2)';
+        setTimeout(() => {
+          scoreElement.style.transform = 'scale(1)';
+        }, 300);
+        
         getRandomImage();
       } else {
         guessAttempts += 1;
         if (currentImage.mode === 'blurred' && data.new_blurred_image_url) {
           document.getElementById('game-image').src = data.new_blurred_image_url;
           currentImage.blur_level = data.blur_level;
+          showAlert("Not quite! Here's a clearer version.", 'warning');
         } else if (currentImage.mode === 'pixelated' && data.new_pixelated_image_url) {
           document.getElementById('game-image').src = data.new_pixelated_image_url;
           currentImage.pixel_ratio = data.pixel_ratio;
+          showAlert("Try again! Here's a higher resolution.", 'warning');
         } else {
-          showAlert("⚠️ No more image resolution available. Moving on.", 'warning');
+          showAlert("⚠️ Maximum attempts reached. Next image!", 'warning');
           getRandomImage();
         }
       }
     })
-    .catch(() => showAlert('Error checking guess.'));
+    .catch(() => {
+      showAlert('Error checking your guess. Please try again.');
+      btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Submit';
+      btn.disabled = false;
+    });
   }
 
   function showAlert(message, type = 'danger') {
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type}`;
-    alert.textContent = message;
-    document.querySelector('.game-card').prepend(alert);
-    setTimeout(() => alert.remove(), 3000);
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+      ${message}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Remove alert after 3 seconds
+    setTimeout(() => {
+      alertDiv.classList.add('fade-out');
+      setTimeout(() => alertDiv.remove(), 500);
+    }, 3000);
   }
+  
+  // Allow submitting with Enter key
+  document.getElementById('guess-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !document.getElementById('submit-btn').disabled) {
+      submitGuess();
+    }
+  });
 </script>
 
 </body>
