@@ -11,42 +11,53 @@
       width: 100%;
       max-width: 600px;
       height: auto;
-      margin: 20px 0;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
       transition: all 0.5s ease;
     }
     .full-height {
-      height: 100vh;
-    }
-    .center-content {
+      min-height: 100vh;
       display: flex;
-      flex-direction: column;
-      justify-content: center;
       align-items: center;
-      height: 100%;
+      justify-content: center;
+    }
+    .game-card {
+      width: 100%;
+      max-width: 1000px;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+      background-color: #f8f9fa;
+    }
+    @media (max-width: 768px) {
+      .row {
+        flex-direction: column-reverse;
+      }
     }
   </style>
 </head>
 <body>
 
-<div class="container-fluid">
-  <div class="row full-height">
-    <!-- Left Column for Image -->
-    <select id="mode-toggle" class="form-control mb-3" onchange="getRandomImage()">
-      <option value="blurred">Blurred Mode</option>
-      <option value="pixelated">Pixelated Mode</option>
-    </select>
-    <div class="col-md-8 d-flex flex-column align-items-start justify-content-start p-4">
-      <h3 id="image-name" class="mb-3"></h3>
-      <img id="game-image" src="" alt="Random Image">
-    </div>
+<div class="container full-height">
+  <div class="game-card">
+    <div class="row">
+      <!-- Left Column for Image -->
+      <div class="col-md-8 mb-4 mb-md-0 text-center">
+        <h5 id="image-name" class="mb-3"></h5>
+        <img id="game-image" src="" alt="Random Image">
+      </div>
 
-    <!-- Right Column for Game Controls -->
-    <div class="col-md-4">
-      <div class="center-content p-4">
-        <h2 class="mb-4">Your Guess</h2>
-        <input type="text" id="guess-input" class="form-control mb-3" placeholder="Type your guess here">
-        <button class="btn btn-success mb-3" onclick="submitGuess()">Submit</button>
-        <h4 id="score-text" class="mt-4">Score: 0</h4>
+      <!-- Right Column for Game Controls -->
+      <div class="col-md-4 d-flex flex-column">
+        <h4 class="mb-3 text-center">Your Guess</h4>
+        <input type="text" id="guess-input" class="form-control mb-2" placeholder="Type your guess here">
+        <button class="btn btn-success mb-3" id="submit-btn" onclick="submitGuess()">Submit</button>
+        <select id="mode-toggle" class="form-control mb-3" onchange="getRandomImage()">
+          <option value="blurred">Blurred Mode</option>
+          <option value="pixelated">Pixelated Mode</option>
+        </select>
+        <h5 id="score-text" class="text-center mt-auto">Score: 0</h5>
       </div>
     </div>
   </div>
@@ -60,10 +71,18 @@
 <script>
   let score = 0;
   let currentImage = null;
-  let guessAttempts = 0; // How many guesses made for current image
+  let guessAttempts = 0;
 
-  // Load the first image on page load
-  window.onload = getRandomImage;
+  window.onload = () => {
+    getRandomImage();
+    document.getElementById('guess-input').addEventListener('input', toggleSubmitButton);
+    toggleSubmitButton();
+  };
+
+  function toggleSubmitButton() {
+    const input = document.getElementById('guess-input').value.trim();
+    document.getElementById('submit-btn').disabled = input === '';
+  }
 
   function getRandomImage() {
     const mode = document.getElementById('mode-toggle').value;
@@ -72,27 +91,21 @@
       .then(data => {
         currentImage = data;
         document.getElementById('image-name').innerText = "Image ID: " + data.image_name;
-        document.getElementById('game-image').src = data.image_url; // backend gives the proper blurred URL
+        document.getElementById('game-image').src = data.image_url;
         document.getElementById('guess-input').value = '';
         guessAttempts = 0;
+        toggleSubmitButton();
       })
-      .catch(error => console.error('Error fetching image:', error));
+      .catch(error => showAlert('Error fetching image.'));
   }
 
   function submitGuess() {
     const userGuess = document.getElementById('guess-input').value.trim().toLowerCase();
-    if (!userGuess) {
-      alert("Please enter a guess!");
-      return;
-    }
-
     fetch('http://127.0.0.1:5000/check_answer', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        image_name: currentImage.image_name, 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image_name: currentImage.image_name,
         guess: userGuess,
         mode: currentImage.mode,
         blur_level: currentImage.blur_level,
@@ -102,14 +115,12 @@
     .then(response => response.json())
     .then(data => {
       if (data.correct) {
-        // Correct guess!
-        const points = Math.max(100 - guessAttempts * 20, 20); // Decrease points per wrong attempt
+        const points = Math.max(100 - guessAttempts * 20, 20);
         score += points;
         document.getElementById('score-text').innerText = `Score: ${score}`;
-        alert(`Correct! You earned ${points} points!`);
-        getRandomImage(); // Load next random blurred image
+        showAlert(`✅ Correct! You earned ${points} points.`, 'success');
+        getRandomImage();
       } else {
-        // Wrong guess -> get less blurred version
         guessAttempts += 1;
         if (currentImage.mode === 'blurred' && data.new_blurred_image_url) {
           document.getElementById('game-image').src = data.new_blurred_image_url;
@@ -118,19 +129,20 @@
           document.getElementById('game-image').src = data.new_pixelated_image_url;
           currentImage.pixel_ratio = data.pixel_ratio;
         } else {
-          alert("No more image resolution available. Moving on.");
+          showAlert("⚠️ No more image resolution available. Moving on.", 'warning');
           getRandomImage();
         }
-        // guessAttempts += 1;
-        // if (data.new_blurred_image_url) {
-        //   document.getElementById('game-image').src = data.new_blurred_image_url; // update to less blurred image
-        // } else {
-        //   alert("No more less-blurred images available! Moving to next one.");
-        //   getRandomImage();
-        // }
       }
     })
-    .catch(error => console.error('Error checking guess:', error));
+    .catch(() => showAlert('Error checking guess.'));
+  }
+
+  function showAlert(message, type = 'danger') {
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type}`;
+    alert.textContent = message;
+    document.querySelector('.game-card').prepend(alert);
+    setTimeout(() => alert.remove(), 3000);
   }
 </script>
 

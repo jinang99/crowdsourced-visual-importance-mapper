@@ -8,6 +8,9 @@ import io
 from flask import send_file
 import numpy as np
 import json
+import spacy
+from functools import lru_cache
+
 
 app = Flask(__name__)
 
@@ -23,6 +26,15 @@ blurred_cache_dir.mkdir(exist_ok=True)
 
 pixelated_cache_dir = Path("pixelated_cache")
 pixelated_cache_dir.mkdir(exist_ok=True)
+
+# Load spaCy model with error handling
+try:
+    nlp = spacy.load("en_core_web_md")
+except OSError:
+    import subprocess
+    subprocess.run(["python", "-m", "spacy", "download", "en_core_web_md"])
+    nlp = spacy.load("en_core_web_md")
+
 
 
 def pixelate_image(
@@ -138,14 +150,21 @@ def blur_image(source_path, blur_level, cache_path):
         blurred = img.filter(ImageFilter.GaussianBlur(blur_radius))
         blurred.save(cache_path)
 
-
+@lru_cache(maxsize=1000)  # Cache recent comparisons
 def similarity_score(user_guess, actual_answer):
-    # TODO module3
-    if user_guess == actual_answer:
-        return 0.75
-    else:
-        return 0.5
-    # return random.uniform(0.1, 1)
+    """Calculate semantic similarity score (0-1) with error handling"""
+    try:
+        doc1 = nlp(user_guess.lower().strip())
+        doc2 = nlp(actual_answer.lower().strip())
+        return max(0.0, min(1.0, doc1.similarity(doc2)))  # Clamp to 0-1
+    except Exception as e:
+        print(f"Similarity calculation failed: {e}")
+        # Fallback to Jaccard similarity
+        words1 = set(user_guess.lower().split())
+        words2 = set(actual_answer.lower().split())
+        intersection = words1 & words2
+        union = words1 | words2
+        return len(intersection) / len(union) if union else 0.0
 
 
 @app.route("/check_answer", methods=["POST"])
@@ -159,8 +178,13 @@ def check_answer():
     # Extract the actual answer from image_name
     actual_answer = image_name.split("-")[0].lower()
 
-    if similarity_score(user_guess, actual_answer) >= 0.75:
+
+    sim_score = similarity_score(user_guess, actual_answer)
+    print(sim_score)
+
+    if sim_score >= 0.75:
         return jsonify({"correct": True})
+    
     if mode == "blurred":
         blur_level = data.get("blur_level", 8)
         next_blur_level = max(blur_level - 1, 0)
