@@ -11,6 +11,7 @@ import json
 import spacy
 from functools import lru_cache
 from sentence_transformers import SentenceTransformer, util
+from rapidfuzz import process
 
 
 app = Flask(__name__)
@@ -29,6 +30,10 @@ blurred_cache_dir.mkdir(exist_ok=True)
 pixelated_cache_dir = Path("pixelated_cache")
 pixelated_cache_dir.mkdir(exist_ok=True)
 
+
+known_labels = ['mumbai', 'delhi', 'kuala lumpur', 'berlin', 'hyderabad', 'chicago', 'orlando', 'paris', 'san francisco',
+                'butterfly', 'spider', 'cow', 'dog', 'chicken', 'elephant', 'horse', 'sheep', 'squirrel']
+
 # Load spaCy model with error handling
 try:
     nlp = spacy.load("en_core_web_md")
@@ -40,6 +45,11 @@ except OSError:
 # Load SentenceTransformer model
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
+def correct_typo(user_input, label_list, threshold=85):
+    match, score, _ = process.extractOne(user_input, label_list)
+    if score >= threshold:
+        return match
+    return user_input 
 
 
 def pixelate_image(
@@ -83,6 +93,68 @@ def pixelate_image(
             f,
         )
 
+# def pixelate_image_blockwise(
+#     src_path,
+#     pixel_ratio,
+#     cache_path,
+#     pixel_map_path,
+#     prev_visible_blocks=None,
+#     block_size=12,
+# ):
+#     img = Image.open(src_path).convert("RGB")
+#     arr = np.array(img)
+#     h, w, _ = arr.shape
+
+#     # Make sure image dims are multiples of block_size (pad if needed)
+#     pad_h = (block_size - h % block_size) % block_size
+#     pad_w = (block_size - w % block_size) % block_size
+#     arr = np.pad(arr, ((0, pad_h), (0, pad_w), (0, 0)), mode="constant")
+#     h, w, _ = arr.shape
+
+#     blocks_h = h // block_size
+#     blocks_w = w // block_size
+#     total_blocks = blocks_h * blocks_w
+#     num_visible_blocks = int(total_blocks * pixel_ratio)
+
+#     all_blocks = [(i, j) for i in range(blocks_h) for j in range(blocks_w)]
+
+#     if prev_visible_blocks is None:
+#         visible_blocks = set(random.sample(all_blocks, num_visible_blocks))
+#     else:
+#         hidden_blocks = list(set(all_blocks) - set(prev_visible_blocks))
+#         needed_more = num_visible_blocks - len(prev_visible_blocks)
+#         newly_revealed = (
+#             set(random.sample(hidden_blocks, needed_more)) if needed_more > 0 else set()
+#         )
+#         visible_blocks = set(prev_visible_blocks) | newly_revealed
+
+#     # Masked array
+#     masked_arr = np.zeros_like(arr)
+#     for bi, bj in visible_blocks:
+#         i_start, i_end = bi * block_size, (bi + 1) * block_size
+#         j_start, j_end = bj * block_size, (bj + 1) * block_size
+#         masked_arr[i_start:i_end, j_start:j_end] = arr[i_start:i_end, j_start:j_end]
+
+#     Image.fromarray(masked_arr[: h - pad_h or None, : w - pad_w or None]).save(
+#         cache_path
+#     )
+
+#     # Save full pixel map + visible blocks
+#     full_pixel_map = {
+#         f"{i},{j}": arr[i, j].tolist() for i in range(h) for j in range(w)
+#     }
+
+#     with open(pixel_map_path, "w") as f:
+#         json.dump(
+#             {
+#                 "visible_blocks": list(map(list, visible_blocks)),  # [[bi, bj], ...]
+#                 "block_size": block_size,
+#                 "pixel_map": full_pixel_map,
+#                 "original_shape": [h - pad_h, w - pad_w],
+#             },
+#             f,
+#         )
+
 
 def pixelate_image_blockwise(
     src_path,
@@ -96,7 +168,7 @@ def pixelate_image_blockwise(
     arr = np.array(img)
     h, w, _ = arr.shape
 
-    # Make sure image dims are multiples of block_size (pad if needed)
+    # Pad image to make dimensions divisible by block_size
     pad_h = (block_size - h % block_size) % block_size
     pad_w = (block_size - w % block_size) % block_size
     arr = np.pad(arr, ((0, pad_h), (0, pad_w), (0, 0)), mode="constant")
@@ -107,30 +179,49 @@ def pixelate_image_blockwise(
     total_blocks = blocks_h * blocks_w
     num_visible_blocks = int(total_blocks * pixel_ratio)
 
-    all_blocks = [(i, j) for i in range(blocks_h) for j in range(blocks_w)]
+    # --- Neighbor logic (4-connected) ---
+    def get_adjacent_blocks(block, max_h, max_w):
+        i, j = block
+        neighbors = []
+        for di, dj in [(-1,0), (1,0), (0,-1), (0,1)]:
+            ni, nj = i + di, j + dj
+            if 0 <= ni < max_h and 0 <= nj < max_w:
+                neighbors.append((ni, nj))
+        return neighbors
 
+    # --- Determine visible blocks ---
     if prev_visible_blocks is None:
-        visible_blocks = set(random.sample(all_blocks, num_visible_blocks))
+        all_blocks = [(i, j) for i in range(blocks_h) for j in range(blocks_w)]
+        seed = random.choice(all_blocks)  
+        visible_blocks = {seed}
     else:
-        hidden_blocks = list(set(all_blocks) - set(prev_visible_blocks))
-        needed_more = num_visible_blocks - len(prev_visible_blocks)
-        newly_revealed = (
-            set(random.sample(hidden_blocks, needed_more)) if needed_more > 0 else set()
-        )
-        visible_blocks = set(prev_visible_blocks) | newly_revealed
+        visible_blocks = set(prev_visible_blocks)
 
-    # Masked array
+    # BFS-like expansion
+    to_visit = list(visible_blocks)
+    visited = set(visible_blocks)
+    while len(visible_blocks) < num_visible_blocks and to_visit:
+        current = to_visit.pop(0)
+        for neighbor in get_adjacent_blocks(current, blocks_h, blocks_w):
+            if neighbor not in visited:
+                visible_blocks.add(neighbor)
+                to_visit.append(neighbor)
+                visited.add(neighbor)
+            if len(visible_blocks) >= num_visible_blocks:
+                break
+
+    # --- Mask image array ---
     masked_arr = np.zeros_like(arr)
     for bi, bj in visible_blocks:
         i_start, i_end = bi * block_size, (bi + 1) * block_size
         j_start, j_end = bj * block_size, (bj + 1) * block_size
         masked_arr[i_start:i_end, j_start:j_end] = arr[i_start:i_end, j_start:j_end]
 
-    Image.fromarray(masked_arr[: h - pad_h or None, : w - pad_w or None]).save(
-        cache_path
-    )
+    # Save image
+    masked_crop = masked_arr[: h - pad_h or None, : w - pad_w or None]
+    Image.fromarray(masked_crop).save(cache_path)
 
-    # Save full pixel map + visible blocks
+    # --- Save metadata ---
     full_pixel_map = {
         f"{i},{j}": arr[i, j].tolist() for i in range(h) for j in range(w)
     }
@@ -138,7 +229,7 @@ def pixelate_image_blockwise(
     with open(pixel_map_path, "w") as f:
         json.dump(
             {
-                "visible_blocks": list(map(list, visible_blocks)),  # [[bi, bj], ...]
+                "visible_blocks": list(map(list, visible_blocks)),
                 "block_size": block_size,
                 "pixel_map": full_pixel_map,
                 "original_shape": [h - pad_h, w - pad_w],
@@ -158,7 +249,8 @@ def blur_image(source_path, blur_level, cache_path):
 def similarity_score(user_guess, actual_answer, model):
     """Calculate semantic similarity score (0-1) using sentence-transformers"""
     try:
-        emb1 = model.encode(user_guess.lower().strip(), convert_to_tensor=True)
+        emb1 = model.encode(correct_typo(user_guess.lower().strip(), known_labels), convert_to_tensor=True)
+        print(correct_typo(user_guess.lower().strip(), known_labels))
         emb2 = model.encode(actual_answer.lower().strip(), convert_to_tensor=True)
         similarity = util.pytorch_cos_sim(emb1, emb2)
         return similarity.item()
@@ -190,6 +282,12 @@ def check_answer():
     if mode == "blurred":
         blur_level = data.get("blur_level", 8)
         next_blur_level = max(blur_level - 1, 0)
+        if next_blur_level == 0:
+            # Image is fully revealed — move to next one
+            return jsonify({
+                "correct": False,
+                "move_to_next": True
+            })
         blurred_image_name = f"{image_name}_blur{next_blur_level}.jpg"
         orig_path = base_dir / actual_answer / image_name
         cache_path = blurred_cache_dir / actual_answer
@@ -209,6 +307,12 @@ def check_answer():
     elif mode == "pixelated":
         pixel_ratio = round(data.get("pixel_ratio", 0.1), 2)
         new_pixel_ratio = min(pixel_ratio + 0.05, 1.0)
+        if new_pixel_ratio >= 1.0:
+            # Image is fully revealed — move to next one
+            return jsonify({
+                "correct": False,
+                "move_to_next": True
+            })
 
         pixelated_image_name = f"{image_name}_pix{int(new_pixel_ratio*100)}.jpg"
         orig_path = base_dir / actual_answer / image_name
@@ -240,39 +344,6 @@ def check_answer():
                 "similarity_score": sim_score,
             }
         )
-    # else:
-    #     # If incorrect guess, you could return a slightly less blurred version
-    #     # For now, just returning the same image (you can improve later)
-
-    #     # Assuming you have multiple blurred versions like abc_blur1.jpg, abc_blur2.jpg etc
-    #     base_name = image_name.rsplit('.', 1)[0]  # remove .jpg
-    #     extension = image_name.rsplit('.', 1)[1]
-
-    #     # Check if image already has a blur level, like '-blur1'
-    #     if 'blur' in base_name:
-    #         name_parts = base_name.split('blur')
-    #         blur_level = int(name_parts[1])
-    #         next_blur_level = max(blur_level - 1, 0)  # decrease blur
-    #         next_image_name = f"{name_parts[0]}blur{next_blur_level}.{extension}"
-    #     else:
-    #         # First wrong attempt, try less blur
-    #         next_image_name = base_name + "blur0." + extension  # maybe no blur image
-
-    #     # You can also check if the file exists before sending it, to avoid 404
-    #     folder_path = data_dir / actual_answer
-    #     next_image_path = folder_path / next_image_name
-
-    #     if next_image_path.exists():
-    #         return jsonify({
-    #             'correct': False,
-    #             'new_blurred_image_url': f"/data/{actual_answer}/{next_image_name}"
-    #         })
-    #     else:
-    #         # If no better image exists, tell frontend to move to next
-    #         return jsonify({
-    #             'correct': False,
-    #             'new_blurred_image_url': None
-    #         })
 
 
 @app.route("/random_image", methods=["GET"])

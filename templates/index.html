@@ -374,7 +374,7 @@
       .then(response => response.json())
       .then(data => {
         currentImage = data;
-        document.getElementById('image-name').innerText = "ID: " + data.image_name;
+        // document.getElementById('image-name').innerText = "ID: " + data.image_name;
         document.getElementById('game-image').src = data.image_url;
         document.getElementById('guess-input').value = '';
         guessAttempts = 0;
@@ -422,6 +422,12 @@
         updateSimilarityBar(data.similarity_score);
       }
       
+      if (data.move_to_next) {
+        showAlert("⚠️ You've fully revealed the image. Moving to the next one!", 'warning');
+        getRandomImage();
+        return;
+      }
+
       if (data.correct) {
         const points = Math.max(100 - guessAttempts * 20, 20);
         score += points;
@@ -448,10 +454,10 @@
           currentImage.pixel_ratio = data.pixel_ratio;
         }
         
-        if (guessAttempts >= 5) {
-          showAlert("⚠️ Maximum attempts reached. Next image!", 'warning');
-          getRandomImage();
-        }
+        // if (guessAttempts >= 5) {
+        //   showAlert("⚠️ Maximum attempts reached. Next image!", 'warning');
+        //   getRandomImage();
+        // }
       }
     })
     .catch(() => {
