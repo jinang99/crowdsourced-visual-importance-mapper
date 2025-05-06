@@ -192,6 +192,52 @@
         margin-top: 15px;
       }
     }
+
+    .similarity-bar-container {
+      width: 100%;
+      height: 10px;
+      background-color: #e9ecef;
+      border-radius: 5px;
+      margin-top: 5px;
+      overflow: hidden;
+    }
+
+    #similarity-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4cc9f0, #4361ee);
+      border-radius: 5px;
+      transition: width 0.8s cubic-bezier(0.65, 0, 0.35, 1), background-color 0.3s ease;
+      width: 0%;
+    }
+
+    .similarity-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .similarity-label {
+      font-size: 1.3rem;
+      color: #6c757d;
+    }
+
+    .similarity-value {
+      font-size: 1.3rem;
+      font-weight: bold;
+    }
+
+    .form-group {
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+    }
+
+    #mode-toggle {
+        height: auto; /* Fixes clipping if the content is tall */
+        line-height: normal;
+        font-size: 16px;
+        font-family: Arial, sans-serif;
+        overflow: visible;
+    }
   </style>
 </head>
 <body>
@@ -217,7 +263,6 @@
 
       <!-- Right Column for Game Controls -->
       <div class="col-md-4" style="position: relative; z-index: 1;">
-        <!-- Remove d-flex flex-column from parent -->
         <h4 class="game-title text-center">Image Guessing Game</h4>
         
         <div class="form-group">
@@ -229,7 +274,7 @@
           <i class="fas fa-paper-plane mr-2"></i> Submit
         </button>
         
-        <div class="form-group" style="position: relative; z-index: 1000;">
+        <div class="form-group">
           <label for="mode-toggle" class="font-weight-bold">Game Mode</label>
           <select id="mode-toggle" class="form-control mb-4" onchange="getRandomImage()">
             <option value="blurred">Blurred Mode</option>
@@ -239,6 +284,16 @@
         
         <div class="score-display">
           <h5 id="score-text">Score: 0</h5>
+        </div>
+
+        <div class="mt-3">
+          <div class="similarity-info">
+            <span class="similarity-label">Similarity:</span>
+            <span class="similarity-value" id="similarity-text">0%</span>
+          </div>
+          <div class="similarity-bar-container">
+            <div id="similarity-bar"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -275,7 +330,45 @@
     getRandomImage();
   }
 
+  function updateSimilarityBar(score) {
+    const similarityBar = document.getElementById('similarity-bar');
+    const similarityText = document.getElementById('similarity-text');
+    const percentage = Math.round(score * 100);
+    
+    // Animate the percentage text
+    let current = parseInt(similarityText.textContent) || 0;
+    const increment = percentage > current ? 1 : -1;
+    const timer = setInterval(() => {
+      current += increment;
+      similarityText.textContent = `${current}%`;
+      
+      if ((increment > 0 && current >= percentage) || 
+          (increment < 0 && current <= percentage)) {
+        clearInterval(timer);
+        similarityText.textContent = `${percentage}%`;
+      }
+    }, 10);
+    
+    // Animate the bar width
+    similarityBar.style.transition = 'width 0.8s cubic-bezier(0.65, 0, 0.35, 1)';
+    similarityBar.style.width = `${percentage}%`;
+    
+    // Update color based on percentage
+    setTimeout(() => {
+      if (percentage > 70) {
+        similarityBar.style.background = 'linear-gradient(90deg, #4bb543, #2e7d32)';
+      } else if (percentage > 40) {
+        similarityBar.style.background = 'linear-gradient(90deg, #f8961e, #f3722c)';
+      } else {
+        similarityBar.style.background = 'linear-gradient(90deg, #f94144, #f3722c)';
+      }
+    }, 800);
+  }
+
   function getRandomImage() {
+    // Reset similarity bar for new image
+    updateSimilarityBar(0);
+    
     const mode = document.getElementById('mode-toggle').value;
     fetch(`/random_image?mode=${mode}&domain=${currentDomain}`)
       .then(response => response.json())
@@ -316,12 +409,18 @@
         blur_level: currentImage.blur_level,
         pixel_ratio: currentImage.pixel_ratio,
         domain: currentDomain,
+        similarity_score: currentImage.similarity_score,
       }),
     })
     .then(response => response.json())
     .then(data => {
       btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Submit';
       btn.disabled = false;
+      
+      // Update similarity bar with the returned score
+      if (data.similarity_score !== undefined) {
+        updateSimilarityBar(data.similarity_score);
+      }
       
       if (data.correct) {
         const points = Math.max(100 - guessAttempts * 20, 20);
@@ -339,15 +438,17 @@
         getRandomImage();
       } else {
         guessAttempts += 1;
+        showAlert(`⚠️ Similarity: ${Math.round(data.similarity_score * 100)}% - Try again!`, 'warning');
+        
         if (currentImage.mode === 'blurred' && data.new_blurred_image_url) {
           document.getElementById('game-image').src = data.new_blurred_image_url;
           currentImage.blur_level = data.blur_level;
-          showAlert("Not quite! Here's a clearer version.", 'warning');
         } else if (currentImage.mode === 'pixelated' && data.new_pixelated_image_url) {
           document.getElementById('game-image').src = data.new_pixelated_image_url;
           currentImage.pixel_ratio = data.pixel_ratio;
-          showAlert("Try again! Here's a higher resolution.", 'warning');
-        } else {
+        }
+        
+        if (guessAttempts >= 5) {
           showAlert("⚠️ Maximum attempts reached. Next image!", 'warning');
           getRandomImage();
         }

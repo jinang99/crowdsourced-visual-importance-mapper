@@ -10,6 +10,7 @@ import numpy as np
 import json
 import spacy
 from functools import lru_cache
+from sentence_transformers import SentenceTransformer, util
 
 
 app = Flask(__name__)
@@ -35,6 +36,9 @@ except OSError:
     import subprocess
     subprocess.run(["python", "-m", "spacy", "download", "en_core_web_md"])
     nlp = spacy.load("en_core_web_md")
+
+# Load SentenceTransformer model
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 
 
@@ -151,21 +155,16 @@ def blur_image(source_path, blur_level, cache_path):
         blurred = img.filter(ImageFilter.GaussianBlur(blur_radius))
         blurred.save(cache_path)
 
-@lru_cache(maxsize=1000)  # Cache recent comparisons
-def similarity_score(user_guess, actual_answer):
-    """Calculate semantic similarity score (0-1) with error handling"""
+def similarity_score(user_guess, actual_answer, model):
+    """Calculate semantic similarity score (0-1) using sentence-transformers"""
     try:
-        doc1 = nlp(user_guess.lower().strip())
-        doc2 = nlp(actual_answer.lower().strip())
-        return max(0.0, min(1.0, doc1.similarity(doc2)))  # Clamp to 0-1
+        emb1 = model.encode(user_guess.lower().strip(), convert_to_tensor=True)
+        emb2 = model.encode(actual_answer.lower().strip(), convert_to_tensor=True)
+        similarity = util.pytorch_cos_sim(emb1, emb2)
+        return similarity.item()
     except Exception as e:
         print(f"Similarity calculation failed: {e}")
-        # Fallback to Jaccard similarity
-        words1 = set(user_guess.lower().split())
-        words2 = set(actual_answer.lower().split())
-        intersection = words1 & words2
-        union = words1 | words2
-        return len(intersection) / len(union) if union else 0.0
+        return 0.0  # Fallback value if something goes wrong
 
 
 @app.route("/check_answer", methods=["POST"])
@@ -182,7 +181,7 @@ def check_answer():
     actual_answer = image_name.split("-")[0].lower()
 
 
-    sim_score = similarity_score(user_guess, actual_answer)
+    sim_score = similarity_score(user_guess, actual_answer, model)
     print(sim_score)
 
     if sim_score >= 0.75:
@@ -202,7 +201,8 @@ def check_answer():
                 "correct": False,
                 "new_blurred_image_url": f"/blurred_image/{actual_answer}/{blurred_image_name}",
                 "blur_level": next_blur_level,
-                "mode": "blurred",
+                "mode": "blurred", 
+                "similarity_score": sim_score,
             }
         )
 
@@ -237,6 +237,7 @@ def check_answer():
                 "new_pixelated_image_url": f"/pixelated_image/{actual_answer}/{pixelated_image_name}",
                 "pixel_ratio": new_pixel_ratio,
                 "mode": "pixelated",
+                "similarity_score": sim_score,
             }
         )
     # else:

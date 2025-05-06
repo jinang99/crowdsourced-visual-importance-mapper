@@ -13,3 +13,4 @@ numpy==2.2.5
 spacy>=3.0.0
 flask>=2.0.0
 flask-cors>=3.0.0
+sentence-transformers
