@@ -10,19 +10,58 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <style>
     :root {
-      --primary-color: #4361ee;
-      --secondary-color: #3f37c9;
-      --accent-color: #4cc9f0;
-      --light-color: #f8f9fa;
-      --dark-color: #212529;
-      --success-color: #4bb543;
-      --warning-color: #f8961e;
-      --danger-color: #f94144;
+      --primary-color: #3B82F6;        /* blue */
+      --secondary-color: #2563EB;      /* darker blue */
+      --accent-color: #22D3EE;         /* cyan */
+      --accent-color2: #e390e4;         /* cyan */
+      --light-color: #E5E7EB;          /* light gray */
+      --dark-color: #111827;           /* slate dark */
+      --darker-color: #0A0F1C;         /* near black */
+      --card-color: #1E293B;           /* deep slate */
+      --text-color: #F3F4F6;           /* almost white */
+      --text-muted: #9CA3AF;           /* muted gray */
+      --success-color: #10B981;        /* green */
+      --warning-color: #FBBF24;        /* amber */
+      --danger-color: #EF4444;         /* red */
     }
     
     body {
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      background-color: var(--dark-color);
+      color: var(--text-color);
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+    }
+    
+    .navbar {
+      background-color: var(--darker-color) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .navbar-brand {
+      color: var(--accent-color) !important;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    
+    .btn-outline-primary {
+      color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-outline-primary:hover {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-outline-secondary {
+      color: var(--accent-color);
+      border-color: var(--accent-color);
+    }
+    
+    .btn-outline-secondary:hover {
+      background-color: var(--accent-color);
+      border-color: var(--accent-color);
+      color: var(--dark-color);
     }
     
     #game-image {
@@ -31,18 +70,19 @@
       height: auto;
       margin-bottom: 20px;
       border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
       transition: all 0.3s ease;
       transform: scale(0.98);
+      background-color: var(--darker-color);
     }
     
     #game-image:hover {
       transform: scale(1);
-      box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
     }
     
     .full-height {
-      min-height: 100vh;
+      min-height: calc(100vh - 72px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -51,17 +91,17 @@
     
     .game-card {
       width: 100%;
-      max-width: 1000px;
-      padding: 40px;
+      /* max-width: 1000px; */
+      padding: 30px;
       border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-      background-color: white;
-      border: none;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      background-color: var(--card-color);
+      border: 1px solid rgba(255, 255, 255, 0.05);
       transition: all 0.3s ease;
     }
     
     .game-card:hover {
-      box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
     }
     
     .btn-primary {
@@ -72,12 +112,14 @@
       font-weight: 600;
       letter-spacing: 0.5px;
       transition: all 0.3s ease;
+      color: white;
     }
     
     .btn-primary:hover {
       background-color: var(--secondary-color);
       border-color: var(--secondary-color);
       transform: translateY(-2px);
+      color: white;
     }
     
     .btn-success {
@@ -88,24 +130,30 @@
       font-weight: 600;
       letter-spacing: 0.5px;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 10px rgba(75, 181, 67, 0.3);
+      box-shadow: 0 4px 10px rgba(0, 184, 148, 0.3);
+      color: white;
     }
     
     .btn-success:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(75, 181, 67, 0.4);
+      box-shadow: 0 6px 15px rgba(0, 184, 148, 0.4);
+      color: white;
     }
     
     .form-control {
       border-radius: 8px;
       padding: 12px 15px;
-      border: 2px solid #e9ecef;
+      border: 2px solid rgba(255, 255, 255, 0.1);
       transition: all 0.3s ease;
+      background-color: var(--darker-color);
+      color: var(--text-color);
     }
     
     .form-control:focus {
       border-color: var(--accent-color);
-      box-shadow: 0 0 0 0.2rem rgba(76, 201, 240, 0.25);
+      box-shadow: 0 0 0 0.2rem rgba(0, 206, 201, 0.25);
+      background-color: var(--darker-color);
+      color: var(--text-color);
     }
     
     .score-display {
@@ -114,7 +162,7 @@
       padding: 15px;
       border-radius: 10px;
       text-align: center;
-      box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+      box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
       margin-top: 20px;
     }
     
@@ -127,13 +175,14 @@
     .alert {
       border-radius: 8px;
       padding: 12px 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       position: fixed;
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
       animation: slideIn 0.5s ease-out;
+      border: none;
     }
     
     @keyframes slideIn {
@@ -151,17 +200,17 @@
     }
     
     .image-id {
-      background-color: var(--light-color);
+      background-color: rgba(255, 255, 255, 0.1);
       padding: 8px 15px;
       border-radius: 20px;
       display: inline-block;
       font-size: 0.9rem;
-      color: var(--dark-color);
+      color: var(--text-muted);
       margin-bottom: 15px;
     }
     
     .game-title {
-      color: var(--primary-color);
+      color: var(--accent-color);
       font-weight: 700;
       margin-bottom: 25px;
       position: relative;
@@ -175,8 +224,12 @@
       left: 0;
       width: 50%;
       height: 4px;
-      background: var(--accent-color);
+      background: var(--primary-color);
       border-radius: 2px;
+    }
+    
+    label {
+      color: var(--text-color);
     }
     
     @media (max-width: 768px) {
@@ -196,7 +249,7 @@
     .similarity-bar-container {
       width: 100%;
       height: 10px;
-      background-color: #e9ecef;
+      background-color: rgba(255, 255, 255, 0.1);
       border-radius: 5px;
       margin-top: 5px;
       overflow: hidden;
@@ -204,7 +257,7 @@
 
     #similarity-bar {
       height: 100%;
-      background: linear-gradient(90deg, #4cc9f0, #4361ee);
+      background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
       border-radius: 5px;
       transition: width 0.8s cubic-bezier(0.65, 0, 0.35, 1), background-color 0.3s ease;
       width: 0%;
@@ -218,12 +271,13 @@
 
     .similarity-label {
       font-size: 1.3rem;
-      color: #6c757d;
+      color: var(--text-muted);
     }
 
     .similarity-value {
       font-size: 1.3rem;
       font-weight: bold;
+      color: var(--text-color);
     }
 
     .form-group {
@@ -232,26 +286,133 @@
     }
 
     #mode-toggle {
-        height: auto; /* Fixes clipping if the content is tall */
+        height: auto;
         line-height: normal;
         font-size: 16px;
-        font-family: Arial, sans-serif;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         overflow: visible;
+        background-color: var(--darker-color);
+        color: var(--text-color);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    #mode-toggle:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 0.2rem rgba(0, 206, 201, 0.25);
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--darker-color);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary-color);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--secondary-color);
+    }
+    
+    /* Animation for score update */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    
+    .pulse {
+      animation: pulse 0.5s ease;
+    }
+
+    .app-title {
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 20px;
+      margin-bottom: 20px;
+      color: var(--light-color);
+      font-size: 2.5rem;
+      font-weight: 600;
+      font-family: monospace;
+      
+      white-space: nowrap;
+      overflow: hidden;
+      border-right: 2px solid var(--accent-color);
+      
+      width: 0;
+      animation: typing 3s steps(29) forwards, blink 0.75s step-end infinite;
+    }
+
+    /* .app-title {
+        font-family: monospace;
+        color: var(--text-color);
+        white-space: nowrap;
+        overflow: hidden;
+        border-right: 2px solid var(--accent-color);
+        font-size: 2rem;
+        width: 0;
+        animation: typing 3s steps(26), blink 0.75s step-end infinite;
+      } */
+
+      @keyframes typing {
+        from { width: 0 }
+        to { width: 24ch }
+      }
+
+      @keyframes blink {
+        50% { border-color: transparent }
+      }
+          
+    .domain-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      /* margin-bottom: 10px; */
+    }
+    
+    .domain-btn {
+      min-width: 120px;
     }
   </style>
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
-    <a class="navbar-brand" href="#">Visual Importance Mapper</a>
+  <!-- <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+    <a class="navbar-brand" href="#">
+      <i class="fas fa-image mr-2"></i>Visual Importance Mapper
+    </a>
     <div class="collapse navbar-collapse">
       <ul class="navbar-nav mr-auto">
         <li class="nav-item">
-          <button class="btn btn-outline-primary mr-2" onclick="selectDomain('animals')">Animals</button>
-          <button class="btn btn-outline-secondary" onclick="selectDomain('city')">City</button>
+          <button class="btn btn-outline-primary mr-2" onclick="selectDomain('animals')">
+            <i class="fas fa-paw mr-1"></i>Animals
+          </button>
+          <button class="btn btn-outline-secondary" onclick="selectDomain('city')">
+            <i class="fas fa-city mr-1"></i>City
+          </button>
         </li>
       </ul>
     </div>
-  </nav>
+  </nav> -->
+<div class="container">
+  <div class="app-title">
+    Visual Importance Mapper
+  </div>
+  
+  <div class="domain-buttons">
+    <button class="btn btn-outline-primary domain-btn" onclick="selectDomain('animals')">
+      <i class="fas fa-paw mr-1"></i>Animals
+    </button>
+    <button class="btn btn-outline-secondary domain-btn" onclick="selectDomain('city')">
+      <i class="fas fa-city mr-1"></i>City
+    </button>
+  </div>
+</div>
 <div class="container full-height">
   <div class="game-card">
     <div class="row">
@@ -277,8 +438,8 @@
         <div class="form-group">
           <label for="mode-toggle" class="font-weight-bold">Game Mode</label>
           <select id="mode-toggle" class="form-control mb-4" onchange="getRandomImage()">
-            <option value="blurred">Blurred Mode</option>
             <option value="pixelated">Pixelated Mode</option>
+            <option value="blurred">Blurred Mode</option>
           </select>
         </div>
         
