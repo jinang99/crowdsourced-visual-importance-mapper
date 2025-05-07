@@ -26,11 +26,14 @@
     }
     
     body {
-      background-color: var(--dark-color);
-      color: var(--text-color);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      min-height: 100vh;
-    }
+        background-image: url('https://images.rawpixel.com/image_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIzLTA4L3Jhd3BpeGVsb2ZmaWNlMjBfM2RfbW9kZXJuX3dhdmVfY3VydmVfYWJzdHJhY3RfaGFsZnRvbmVfZ3JhZGllbl8xZTJhY2M3Mi1jZTU3LTQ0NjItOGQzNS1lOTI4YzI5NzcxMTdfMS5qcGc.jpg'); /* Example image */
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        color: var(--text-color);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        min-height: 100vh;
+      }
     
     .navbar {
       background-color: var(--darker-color) !important;
@@ -66,9 +69,9 @@
     
     #game-image {
       width: 100%;
-      max-width: 600px;
-      height: auto;
-      margin-bottom: 20px;
+      /* max-width: 600px; */
+      height: 500px;
+      /* margin-bottom: 20px; */
       border-radius: 12px;
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
       transition: all 0.3s ease;
@@ -86,7 +89,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      /* padding: 10px; */
     }
     
     .game-card {
@@ -334,8 +337,8 @@
       position: relative;
       left: 50%;
       transform: translateX(-50%);
-      margin-top: 20px;
-      margin-bottom: 20px;
+      margin-top: 15px;
+      margin-bottom: 15px;
       color: var(--light-color);
       font-size: 2.5rem;
       font-weight: 600;
@@ -418,7 +421,7 @@
     <div class="row">
       <!-- Left Column for Image -->
       <div class="col-md-8 mb-4 mb-md-0 text-center">
-        <div class="image-id" id="image-name"></div>
+        <!-- <div class="image-id" id="image-name"></div> -->
         <img id="game-image" src="" alt="Random Image" class="img-fluid">
       </div>
 
